@@ -10,7 +10,11 @@
     { code: 'KAQO', name: 'Llano Municipal', lat: 30.7842, lon: -98.6598, labelX: -54, labelY: -10 },
     { code: 'KDZB', name: 'Horseshoe Bay Resort', lat: 30.5270, lon: -98.3588, labelX: -54, labelY: 23 },
     { code: 'KRYW', name: 'Lago Vista / Rusty Allen', lat: 30.4987, lon: -97.9695, labelX: -54, labelY: -10 },
-    { code: 'KCLL', name: 'Easterwood Field · College Station', lat: 30.5880, lon: -96.3625, labelX: -56, labelY: -11 }
+    { code: 'KCLL', name: 'Easterwood Field · College Station', lat: 30.5880, lon: -96.3625, labelX: -56, labelY: -11 },
+    { code: 'T74', name: 'Taylor Municipal', lat: 30.5726, lon: -97.4432, labelX: 10, labelY: 22 },
+    { code: 'KBMQ', name: 'Burnet Municipal / Kate Craddock Field', lat: 30.7389, lon: -98.2386, labelX: -60, labelY: -12 },
+    { code: 'KLZZ', name: 'Lampasas Airport', lat: 31.1062, lon: -98.1959, labelX: 10, labelY: -10 },
+    { code: 'KTPL', name: 'Draughon-Miller Central Texas Regional', lat: 31.1519, lon: -97.4077, labelX: 10, labelY: -10 }
   ];
   const canvas = document.getElementById('globeCanvas');
   const list = document.getElementById('globePlaces');
