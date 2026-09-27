@@ -29,18 +29,8 @@
     { code: 'KCNW', name: 'TSTC Waco', lat: 31.6378, lon: -97.0741 },
     { code: 'KGDJ', name: 'Granbury Regional', lat: 32.4431, lon: -97.8214 }
   ];
-  // Approximate city centers provide geographic context without implying a street map.
-  const CITIES = [
-    { name: 'Austin', lat: 30.2672, lon: -97.7431, dx: -82, dy: 11, major: true },
-    { name: 'Georgetown', lat: 30.6333, lon: -97.6770, dx: 17, dy: 27 },
-    { name: 'Waco', lat: 31.5493, lon: -97.1467, dx: 17, dy: 27, major: true },
-    { name: 'Temple', lat: 31.0982, lon: -97.3428, dx: 19, dy: 30, major: true },
-    { name: 'College Station', lat: 30.6280, lon: -96.3344, dx: -106, dy: 33, major: true },
-    { name: 'Stephenville', lat: 32.2207, lon: -98.2023, dx: 16, dy: 31, major: true },
-    { name: 'Llano', lat: 30.7593, lon: -98.6750, dx: 12, dy: 28 },
-    { name: 'Burnet', lat: 30.7582, lon: -98.2284, dx: 18, dy: 28 }
-  ];
   const canvas = document.getElementById('globeCanvas');
+  const tileLayer = document.getElementById('mapTiles');
   const list = document.getElementById('globePlaces');
   const nearbyList = document.getElementById('nearbyPlaces');
   const info = document.getElementById('airportSelection');
@@ -49,15 +39,25 @@
   const airspaceToggle = document.getElementById('showAirspace');
   const visitedTab = document.getElementById('visitedTab');
   const nearbyTab = document.getElementById('nearbyTab');
-  if(!canvas || !list || !nearbyList || !info || !airspaceInfo || !nearbyToggle || !airspaceToggle || !visitedTab || !nearbyTab) return;
+  if(!canvas || !tileLayer || !list || !nearbyList || !info || !airspaceInfo || !nearbyToggle || !airspaceToggle || !visitedTab || !nearbyTab) return;
   const ctx = canvas.getContext('2d');
   if(!ctx) return;
   const root = document.documentElement;
   const W = 720, H = 720, PAD = 52;
   const BOX = { west: -99.02, east: -96.08, south: 29.95, north: 32.52 };
   const center = { lat: (BOX.south + BOX.north) / 2, lon: (BOX.west + BOX.east) / 2 };
-  const nmPerPixel = Math.max((BOX.east - BOX.west) * 60 * Math.cos(center.lat * Math.PI / 180) / (W - 2 * PAD),
-                              (BOX.north - BOX.south) * 60 / (H - 2 * PAD));
+  const TILE_ZOOM = 8;
+  const TILE_WORLD = 256 * 2 ** TILE_ZOOM;
+  function mercator(a){
+    const phi = a.lat * Math.PI / 180;
+    return { x: (a.lon + 180) / 360 * TILE_WORLD,
+      y: (1 - Math.log(Math.tan(phi) + 1 / Math.cos(phi)) / Math.PI) / 2 * TILE_WORLD };
+  }
+  const nw = mercator({ lat: BOX.north, lon: BOX.west });
+  const se = mercator({ lat: BOX.south, lon: BOX.east });
+  const mapCenter = { x: (nw.x + se.x) / 2, y: (nw.y + se.y) / 2 };
+  const mapScale = Math.min((W - 2 * PAD) / (se.x - nw.x), (H - 2 * PAD) / (se.y - nw.y));
+  const nmPerPixel = 1 / ((mercator({ lat: center.lat - 1 / 60, lon: center.lon }).y - mercator(center).y) * mapScale);
   const zoneAirports = Object.fromEntries([...AIRPORTS, ...NEARBY].map(a => [a.code.slice(1), a]));
   const home = AIRPORTS[0];
   let selected = home;
@@ -66,11 +66,14 @@
   let showNearby = true, showAirspace = true;
   let zoom = 1, panX = 0, panY = 0;
   let dragging = null;
+  let tilesEnabled = false;
+  const tileImages = new Map();
 
   function base(a){
+    const p = mercator(a);
     return {
-      x: W / 2 + (a.lon - center.lon) * 60 * Math.cos(center.lat * Math.PI / 180) / nmPerPixel,
-      y: H / 2 - (a.lat - center.lat) * 60 / nmPerPixel
+      x: W / 2 + (p.x - mapCenter.x) * mapScale,
+      y: H / 2 + (p.y - mapCenter.y) * mapScale
     };
   }
   function point(a){
@@ -123,58 +126,43 @@
     return zones.filter(z => Math.hypot(point(z.center).x - p.x, point(z.center).y - p.y) <= z.radiusNm / nmPerPixel * zoom)
       .sort((a, b) => a.floor - b.floor || a.radiusNm - b.radiusNm)[0] || null;
   }
-  function drawCities(c){
-    const compact = canvas.getBoundingClientRect().width < 500;
-    CITIES.forEach(city => {
-      if(compact && !city.major) return;
-      const p = point(city);
-      if(p.x < 10 || p.x > W - 10 || p.y < 10 || p.y > H - 10) return;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(Math.PI / 4);
-      ctx.fillStyle = c.blue;
-      ctx.globalAlpha = city.major ? .7 : .45;
-      ctx.fillRect(-3, -3, 6, 6);
-      ctx.restore();
-      ctx.font = (city.major ? '700 ' + (compact ? 20 : 14) + 'px' : '500 13px') + ' "IBM Plex Sans", sans-serif';
-      ctx.lineJoin = 'round';
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = c.halo;
-      ctx.globalAlpha = .8;
-      ctx.strokeText(city.name, p.x + city.dx, p.y + city.dy);
-      ctx.fillStyle = c.soft;
-      ctx.globalAlpha = city.major ? 1 : .85;
-      ctx.fillText(city.name, p.x + city.dx, p.y + city.dy);
-      ctx.globalAlpha = 1;
-    });
+  function renderTiles(){
+    if(!tilesEnabled) return;
+    const z = TILE_ZOOM + Math.floor(Math.log2(zoom));
+    const factor = 2 ** (z - TILE_ZOOM);
+    const size = 256 * mapScale * zoom / factor;
+    const cx = mapCenter.x * factor / 256;
+    const cy = mapCenter.y * factor / 256;
+    const left = Math.floor(cx + (-W / 2 - panX) / size);
+    const right = Math.floor(cx + (W / 2 - panX) / size);
+    const top = Math.floor(cy + (-H / 2 - panY) / size);
+    const bottom = Math.floor(cy + (H / 2 - panY) / size);
+    const needed = new Set();
+    for(let y = top; y <= bottom; y++) for(let x = left; x <= right; x++){
+      const key = z + '/' + x + '/' + y;
+      needed.add(key);
+      let img = tileImages.get(key);
+      if(!img){
+        img = document.createElement('img');
+        img.alt = '';
+        img.decoding = 'async';
+        img.addEventListener('error', () => { img.style.display = 'none'; });
+        img.src = 'https://tile.openstreetmap.org/' + key + '.png';
+        tileLayer.appendChild(img);
+        tileImages.set(key, img);
+      }
+      img.style.left = ((W / 2 + (x - cx) * size + panX) / W * 100) + '%';
+      img.style.top = ((H / 2 + (y - cy) * size + panY) / H * 100) + '%';
+      img.style.width = (size / W * 100) + '%';
+    }
+    for(const [key, img] of tileImages){
+      if(!needed.has(key)){ img.remove(); tileImages.delete(key); }
+    }
   }
   function draw(){
     const c = palette();
     ctx.clearRect(0, 0, W, H);
-    const ground = ctx.createLinearGradient(0, 0, W, H);
-    ground.addColorStop(0, c.top);
-    ground.addColorStop(1, c.bottom);
-    ctx.fillStyle = ground; ctx.fillRect(0, 0, W, H);
-
-    // A chart grid gives the schematic map a sense of bearing without implying roads or terrain.
-    ctx.strokeStyle = c.grid; ctx.globalAlpha = .2; ctx.lineWidth = 1;
-    for(let lat = 30.5; lat <= 32; lat += .5){
-      const y = point({ lat, lon: BOX.west }).y;
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-      ctx.globalAlpha = .7;
-      ctx.fillStyle = c.soft; ctx.font = '10px "IBM Plex Mono", monospace';
-      ctx.fillText(lat.toFixed(1) + '° N', 19, y - 8);
-      ctx.globalAlpha = .2;
-    }
-    for(let lon = -98.5; lon <= -96.5; lon += .5){
-      const x = point({ lat: BOX.south, lon }).x;
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-      ctx.globalAlpha = .7;
-      ctx.fillStyle = c.soft; ctx.font = '10px "IBM Plex Mono", monospace';
-      ctx.fillText(Math.abs(lon).toFixed(1) + '° W', x + 6, 26);
-      ctx.globalAlpha = .2;
-    }
-    ctx.globalAlpha = 1;
+    renderTiles();
     drawZones(c);
 
     const origin = point(home);
@@ -183,7 +171,6 @@
     glow.addColorStop(1, c.blue + '00');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
-    drawCities(c);
     if(!showAirspace) [25, 50, 75].forEach(nm => {
       const radius = nm / nmPerPixel * zoom;
       ctx.beginPath(); ctx.arc(origin.x, origin.y, radius, 0, 2 * Math.PI);
@@ -367,6 +354,19 @@
   document.addEventListener('cockpit:theme', draw);
   window.addEventListener('resize', resize);
   resize(); select(home);
+  if('IntersectionObserver' in window){
+    const observer = new IntersectionObserver(entries => {
+      if(entries.some(entry => entry.isIntersecting)){
+        tilesEnabled = true;
+        renderTiles();
+        observer.disconnect();
+      }
+    }, { rootMargin: '300px' });
+    observer.observe(canvas);
+  }else{
+    tilesEnabled = true;
+    renderTiles();
+  }
   fetch('airspace-data.json?v=2026-09-26').then(response => {
     if(!response.ok) throw new Error('Airspace data unavailable');
     return response.json();

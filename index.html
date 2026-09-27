@@ -33,7 +33,7 @@ try{
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=airport-cities">
+<link rel="stylesheet" href="styles.css?v=airport-basemap">
 </head>
 <body>
 
@@ -431,17 +431,18 @@ try{
       <div class="map-toolbar" aria-label="Map layers">
         <label class="map-toggle"><input type="checkbox" id="showNearby" checked><span>Nearby airports</span></label>
         <label class="map-toggle"><input type="checkbox" id="showAirspace" checked><span>Airspace</span></label>
-        <span class="map-key"><i class="map-key-visited"></i>Visited <i class="map-key-nearby"></i>Not visited <i class="map-key-city"></i>City <i class="map-key-class-c"></i>Class C <i class="map-key-class-d"></i>Class D</span>
+        <span class="map-key"><i class="map-key-visited"></i>Visited <i class="map-key-nearby"></i>Not visited <i class="map-key-class-c"></i>Class C <i class="map-key-class-d"></i>Class D</span>
       </div>
       <div class="globe-wrap">
         <div class="airport-map">
-          <canvas id="globeCanvas" aria-label="Interactive airport map of Central Texas, showing cities, twelve visited airports, other nearby airports, and Class C and D airspace"></canvas>
-          <div class="airport-map-title" aria-hidden="true"><strong>AIRPORT MAP</strong><span>CENTRAL TEXAS · USA</span></div>
+          <div class="map-tiles" id="mapTiles" aria-hidden="true"></div>
+          <canvas id="globeCanvas" aria-label="Interactive airport map of Central Texas, showing twelve visited airports, other nearby airports, and Class C and D airspace"></canvas>
           <div class="airport-map-controls" aria-label="Map zoom">
             <button type="button" id="mapZoomIn" aria-label="Zoom map in">+</button>
             <button type="button" id="mapZoomOut" aria-label="Zoom map out">−</button>
             <button type="button" id="mapReset" aria-label="Reset map view">↺</button>
           </div>
+          <div class="map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></div>
         </div>
         <div class="airport-list">
           <div class="airport-selection" id="airportSelection" aria-live="polite"></div>
@@ -827,6 +828,6 @@ try{
 <script src="cockpit.js"></script>
 <script src="script.js"></script>
 <script src="game.js"></script>
-<script src="airport-map.js?v=airport-cities"></script>
+<script src="airport-map.js?v=airport-basemap"></script>
 </body>
 </html>

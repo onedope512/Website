@@ -1627,7 +1627,6 @@ html[data-sky="night"]:not(.force-day) .game{ --overlay-bg: rgba(26, 36, 64, 0.9
 .map-key i{ display: inline-block; width: 10px; height: 10px; margin-left: 7px; border-radius: 50%; background: var(--magenta); }
 .map-key i:first-child{ margin-left: 0; }
 .map-key .map-key-nearby{ background: var(--map-muted); }
-.map-key .map-key-city{ width: 8px; height: 8px; border-radius: 0; background: var(--blue); opacity: .55; transform: rotate(45deg); }
 .map-key .map-key-class-c{ border-radius: 2px; background: transparent; border: 2px solid var(--magenta); }
 .map-key .map-key-class-d{ border-radius: 2px; background: transparent; border: 2px dashed var(--blue); }
 .globe-wrap{
@@ -1652,10 +1651,14 @@ html[data-sky="night"]:not(.force-day) .game{ --overlay-bg: rgba(26, 36, 64, 0.9
 }
 #globeCanvas{ display: block; width: 100%; aspect-ratio: 1; cursor: grab; touch-action: none; }
 #globeCanvas:active{ cursor: grabbing; }
-.airport-map-title{ position: absolute; top: 16px; left: 16px; z-index: 1; display: grid; gap: 2px; padding: 8px 10px; border-left: 3px solid var(--blue); background: var(--card); color: var(--ink); box-shadow: 2px 2px 0 var(--line-soft); pointer-events: none; }
-.airport-map-title strong{ font: 700 12px/1.15 var(--mono); letter-spacing: .045em; }
-.airport-map-title span{ color: var(--ink-soft); font: 500 9px/1.2 var(--mono); letter-spacing: .06em; }
-.airport-map-controls{ position: absolute; right: 16px; top: 16px; display: flex; gap: 4px; }
+.map-tiles{ position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: .48; filter: grayscale(1) contrast(.78); }
+.map-tiles img{ position: absolute; display: block; max-width: none; height: auto; user-select: none; }
+html.night .map-tiles,
+html[data-sky="night"]:not(.force-day) .map-tiles{ opacity: .38; filter: grayscale(1) invert(1) brightness(.7); }
+#globeCanvas{ position: relative; z-index: 1; }
+.airport-map-controls{ position: absolute; z-index: 2; right: 16px; top: 16px; display: flex; gap: 4px; }
+.map-attribution{ position: absolute; z-index: 2; right: 8px; bottom: 5px; padding: 2px 4px; background: var(--card); color: var(--ink-soft); font: 500 9px/1.2 var(--sans); }
+.map-attribution a{ color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .airport-map-controls button{
   width: 36px; height: 36px; padding: 0; border: 1px solid var(--blue); background: var(--card);
   color: var(--ink); font: 600 18px/1 var(--mono); cursor: pointer;
