@@ -1649,7 +1649,7 @@ html[data-sky="night"]:not(.force-day) .game{ --overlay-bg: rgba(26, 36, 64, 0.9
   border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
   pointer-events: none;
 }
-#globeCanvas{ display: block; width: 100%; aspect-ratio: 720 / 500; cursor: grab; touch-action: none; }
+#globeCanvas{ display: block; width: 100%; aspect-ratio: 1; cursor: grab; touch-action: none; }
 #globeCanvas:active{ cursor: grabbing; }
 .airport-map-controls{ position: absolute; right: 16px; top: 16px; display: flex; gap: 4px; }
 .airport-map-controls button{
@@ -1658,13 +1658,24 @@ html[data-sky="night"]:not(.force-day) .game{ --overlay-bg: rgba(26, 36, 64, 0.9
 }
 .airport-map-controls button:hover{ background: var(--blue); color: var(--paper); }
 .airport-map-controls button:focus-visible{ outline-offset: 2px; }
-.airport-list-label{ font: 600 11px/1.4 var(--mono); letter-spacing: .09em; color: var(--ink-soft); margin-bottom: 10px; }
-.globe-places{ display: grid; grid-template-columns: 1fr; gap: 6px; align-content: flex-start; }
+.airport-list{ min-width: 0; }
+.airport-selection{ min-height: 118px; padding: 18px; border: 1px solid var(--blue); background: var(--card); box-shadow: 5px 5px 0 color-mix(in srgb, var(--blue) 17%, transparent); }
+.airport-selection .airport-selection-meta{ display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 600 10px/1.4 var(--mono); letter-spacing: .08em; color: var(--blue); text-transform: uppercase; }
+.airport-selection .airport-selection-meta .is-nearby{ color: var(--map-muted); }
+.airport-selection strong{ display: block; margin-top: 9px; color: var(--ink); font: 800 clamp(26px, 3vw, 38px)/1 var(--serif-display); }
+.airport-selection p{ margin: 5px 0 0; color: var(--ink-soft); font: 500 12px/1.4 var(--sans); }
+.airport-selection small{ display: block; margin-top: 10px; color: var(--magenta); font: 500 11px/1.4 var(--mono); }
+.airport-tabs{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 22px 0 10px; }
+.airport-tabs button{ display: flex; align-items: center; justify-content: space-between; gap: 5px; min-height: 40px; padding: 8px 11px; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); font: 600 11px/1.2 var(--mono); cursor: pointer; }
+.airport-tabs button span{ color: var(--map-muted); }
+.airport-tabs button.is-active{ border-color: var(--blue); background: var(--blue); color: var(--paper); }
+.airport-tabs button.is-active span{ color: var(--paper); }
+.airport-tabs button:focus-visible,.globe-chip:focus-visible{ outline: 2px solid var(--magenta); outline-offset: 2px; }
+.globe-places{ display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; align-content: flex-start; }
+.globe-places[hidden]{ display: none; }
 .globe-chip{
-  display: grid; grid-template-columns: 62px 1fr; align-items: center; text-align: left; gap: 8px;
-  font-family: var(--mono);
-  font-size: 12px;
-  padding: 10px 12px;
+  display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 46px; padding: 8px 4px;
+  font: 600 12px/1 var(--mono);
   border: 1px solid var(--line);
   background: var(--card);
   color: var(--ink);
@@ -1672,30 +1683,24 @@ html[data-sky="night"]:not(.force-day) .game{ --overlay-bg: rgba(26, 36, 64, 0.9
   transition: border-color .15s ease, background .15s ease, transform .15s ease;
 }
 .globe-chip strong{ color: var(--blue); }
-.globe-chip span{ font-family: var(--sans); font-size: 12.5px; }
 .globe-chip:hover,
 .globe-chip.is-active{ border-color: var(--magenta); background: var(--paper); }
-.globe-chip:hover{ transform: translateX(2px); }
-.globe-chip.is-active{ box-shadow: inset 4px 0 var(--magenta); }
+.globe-chip:hover{ transform: translateY(-2px); }
+.globe-chip.is-active{ box-shadow: inset 0 -3px var(--magenta); }
 .globe-chip.is-active strong{ color: var(--magenta); }
-.nearby-airports{ margin-top: 14px; border-top: 1px solid var(--line); }
-.nearby-airports summary{ cursor: pointer; padding: 12px 0; color: var(--ink); font: 600 12px/1.4 var(--mono); }
-.nearby-airports summary span{ color: var(--map-muted); font-weight: 400; }
-.nearby-places{ padding-bottom: 4px; }
 .globe-chip.is-nearby{ color: var(--ink-soft); }
 .globe-chip.is-nearby strong{ color: var(--map-muted); }
-.globe-chip.is-nearby.is-active{ border-color: var(--map-muted); box-shadow: inset 4px 0 var(--map-muted); }
-.airport-selection{ min-height: 42px; margin-top: 12px; color: var(--magenta); font: 500 12px/1.5 var(--mono); }
-.airspace-selection{ min-height: 32px; color: var(--blue); font: 500 11px/1.5 var(--mono); }
+.globe-chip.is-nearby.is-active{ border-color: var(--map-muted); box-shadow: inset 0 -3px var(--map-muted); }
+.airspace-selection{ min-height: 32px; margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); color: var(--blue); font: 500 11px/1.5 var(--mono); }
 .map-note{ margin-top: 16px; color: var(--ink-soft); font-size: 12.5px; }
 .resume-direct{ display: inline-block; margin-top: 16px; font: 600 13px/1.4 var(--mono); color: var(--blue); }
 @media (max-width: 900px){
   .globe-wrap{ grid-template-columns: 1fr; }
-  .globe-places{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .globe-places{ grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 520px){
   .map-key{ width: 100%; margin-left: 0; }
-  .globe-places{ grid-template-columns: 1fr; }
+  .globe-places{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
   #globeCanvas{ touch-action: pan-y; }
 }
 

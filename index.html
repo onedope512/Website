@@ -33,7 +33,7 @@ try{
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=airspace-layer">
+<link rel="stylesheet" href="styles.css?v=airspace-circles">
 </head>
 <body>
 
@@ -443,17 +443,17 @@ try{
           </div>
         </div>
         <div class="airport-list">
-          <p class="airport-list-label">VISITED AIRPORTS</p>
+          <div class="airport-selection" id="airportSelection" aria-live="polite"></div>
+          <div class="airport-tabs" role="group" aria-label="Airport lists">
+            <button type="button" id="visitedTab" class="is-active" aria-pressed="true">Visited <span>12</span></button>
+            <button type="button" id="nearbyTab" aria-pressed="false">Nearby <span>11</span></button>
+          </div>
           <div class="globe-places" id="globePlaces"></div>
-          <details class="nearby-airports">
-            <summary>Other nearby airports <span>not visited</span></summary>
-            <div class="globe-places nearby-places" id="nearbyPlaces"></div>
-          </details>
-          <p class="airport-selection" id="airportSelection" aria-live="polite"></p>
+          <div class="globe-places nearby-places" id="nearbyPlaces" hidden></div>
           <p class="airspace-selection" id="airspaceSelection" aria-live="polite">Tap a Class C or D area for its altitude limits.</p>
         </div>
       </div>
-      <p class="map-note">This is a visual reference, not a chart for navigation. The highlighted line does not represent a logged flight. Airport and airspace data: <a href="https://adds-faa.opendata.arcgis.com/" target="_blank" rel="noopener">FAA Aeronautical Data Delivery Service</a>. Airspace snapshot: September 2026. Check current FAA charts and NOTAMs before flight.</p>
+      <p class="map-note">Airspace circles approximate the FAA's horizontal boundaries; actual shapes can differ. This is a visual reference, not a chart for navigation. The highlighted line does not represent a logged flight. Airport and airspace data: <a href="https://adds-faa.opendata.arcgis.com/" target="_blank" rel="noopener">FAA Aeronautical Data Delivery Service</a>. Airspace snapshot: September 2026. Check current FAA charts and NOTAMs before flight.</p>
     </div>
   </section>
 
@@ -826,6 +826,6 @@ try{
 <script src="cockpit.js"></script>
 <script src="script.js"></script>
 <script src="game.js"></script>
-<script src="airport-map.js?v=airspace-layer"></script>
+<script src="airport-map.js?v=airspace-circles"></script>
 </body>
 </html>
