@@ -29,6 +29,17 @@
     { code: 'KCNW', name: 'TSTC Waco', lat: 31.6378, lon: -97.0741 },
     { code: 'KGDJ', name: 'Granbury Regional', lat: 32.4431, lon: -97.8214 }
   ];
+  // Approximate city centers provide geographic context without implying a street map.
+  const CITIES = [
+    { name: 'Austin', lat: 30.2672, lon: -97.7431, dx: -82, dy: 11, major: true },
+    { name: 'Georgetown', lat: 30.6333, lon: -97.6770, dx: 17, dy: 27 },
+    { name: 'Waco', lat: 31.5493, lon: -97.1467, dx: 17, dy: 27, major: true },
+    { name: 'Temple', lat: 31.0982, lon: -97.3428, dx: 19, dy: 30, major: true },
+    { name: 'College Station', lat: 30.6280, lon: -96.3344, dx: -106, dy: 33, major: true },
+    { name: 'Stephenville', lat: 32.2207, lon: -98.2023, dx: 16, dy: 31, major: true },
+    { name: 'Llano', lat: 30.7593, lon: -98.6750, dx: 12, dy: 28 },
+    { name: 'Burnet', lat: 30.7582, lon: -98.2284, dx: 18, dy: 28 }
+  ];
   const canvas = document.getElementById('globeCanvas');
   const list = document.getElementById('globePlaces');
   const nearbyList = document.getElementById('nearbyPlaces');
@@ -112,6 +123,31 @@
     return zones.filter(z => Math.hypot(point(z.center).x - p.x, point(z.center).y - p.y) <= z.radiusNm / nmPerPixel * zoom)
       .sort((a, b) => a.floor - b.floor || a.radiusNm - b.radiusNm)[0] || null;
   }
+  function drawCities(c){
+    const compact = canvas.getBoundingClientRect().width < 500;
+    CITIES.forEach(city => {
+      if(compact && !city.major) return;
+      const p = point(city);
+      if(p.x < 10 || p.x > W - 10 || p.y < 10 || p.y > H - 10) return;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = c.blue;
+      ctx.globalAlpha = city.major ? .7 : .45;
+      ctx.fillRect(-3, -3, 6, 6);
+      ctx.restore();
+      ctx.font = (city.major ? '700 ' + (compact ? 20 : 14) + 'px' : '500 13px') + ' "IBM Plex Sans", sans-serif';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = c.halo;
+      ctx.globalAlpha = .8;
+      ctx.strokeText(city.name, p.x + city.dx, p.y + city.dy);
+      ctx.fillStyle = c.soft;
+      ctx.globalAlpha = city.major ? 1 : .85;
+      ctx.fillText(city.name, p.x + city.dx, p.y + city.dy);
+      ctx.globalAlpha = 1;
+    });
+  }
   function draw(){
     const c = palette();
     ctx.clearRect(0, 0, W, H);
@@ -147,6 +183,7 @@
     glow.addColorStop(1, c.blue + '00');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
+    drawCities(c);
     if(!showAirspace) [25, 50, 75].forEach(nm => {
       const radius = nm / nmPerPixel * zoom;
       ctx.beginPath(); ctx.arc(origin.x, origin.y, radius, 0, 2 * Math.PI);
