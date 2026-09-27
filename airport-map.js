@@ -50,8 +50,9 @@
   function palette(){
     const c = getComputedStyle(root);
     const v = key => c.getPropertyValue(key).trim();
-    return { paper: v('--card'), ink: v('--ink'), soft: v('--ink-soft'), grid: v('--line'),
-      blue: v('--blue'), magenta: v('--magenta'), amber: v('--amber'), green: v('--green') };
+    return { paper: v('--card'), ink: v('--ink'), soft: v('--ink-soft'), grid: v('--map-grid'),
+      top: v('--map-top'), bottom: v('--map-bottom'), halo: v('--map-halo'),
+      blue: v('--blue'), magenta: v('--magenta'), amber: v('--amber') };
   }
   function line(from, to, color, width, dash){
     const a = point(from), b = point(to);
@@ -66,34 +67,54 @@
   function draw(){
     const c = palette();
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = c.paper; ctx.fillRect(0, 0, W, H);
+    const ground = ctx.createLinearGradient(0, 0, W, H);
+    ground.addColorStop(0, c.top);
+    ground.addColorStop(1, c.bottom);
+    ctx.fillStyle = ground; ctx.fillRect(0, 0, W, H);
 
-    ctx.strokeStyle = c.grid; ctx.globalAlpha = .36; ctx.lineWidth = 1;
+    // A chart grid gives the schematic map a sense of bearing without implying roads or terrain.
+    ctx.strokeStyle = c.grid; ctx.globalAlpha = .2; ctx.lineWidth = 1;
     for(let lat = 30.5; lat <= 32; lat += .5){
       const y = point({ lat, lon: BOX.west }).y;
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-      ctx.fillStyle = c.soft; ctx.font = '11px "IBM Plex Mono", monospace';
-      ctx.fillText('N' + lat.toFixed(1), 12, y - 5);
+      ctx.globalAlpha = .7;
+      ctx.fillStyle = c.soft; ctx.font = '10px "IBM Plex Mono", monospace';
+      ctx.fillText(lat.toFixed(1) + '° N', 19, y - 8);
+      ctx.globalAlpha = .2;
     }
     for(let lon = -98.5; lon <= -96.5; lon += .5){
       const x = point({ lat: BOX.south, lon }).x;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-      ctx.fillStyle = c.soft; ctx.font = '11px "IBM Plex Mono", monospace';
-      ctx.fillText('W' + Math.abs(lon).toFixed(1), x + 5, 20);
+      ctx.globalAlpha = .7;
+      ctx.fillStyle = c.soft; ctx.font = '10px "IBM Plex Mono", monospace';
+      ctx.fillText(Math.abs(lon).toFixed(1) + '° W', x + 6, 26);
+      ctx.globalAlpha = .2;
     }
     ctx.globalAlpha = 1;
 
     const origin = point(home);
+    const glow = ctx.createRadialGradient(origin.x, origin.y, 12, origin.x, origin.y, 170 * zoom);
+    glow.addColorStop(0, c.blue + '25');
+    glow.addColorStop(1, c.blue + '00');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
     [25, 50, 75].forEach(nm => {
       const radius = nm / 60 * (H - 2 * PAD) / (BOX.north - BOX.south) * zoom;
       ctx.beginPath(); ctx.arc(origin.x, origin.y, radius, 0, 2 * Math.PI);
-      ctx.strokeStyle = c.blue; ctx.globalAlpha = .18; ctx.lineWidth = 1; ctx.setLineDash([4, 6]); ctx.stroke();
+      ctx.strokeStyle = c.blue; ctx.globalAlpha = .27; ctx.lineWidth = 1; ctx.setLineDash([3, 6]); ctx.stroke();
       ctx.setLineDash([]); ctx.globalAlpha = 1;
+      if(origin.x + radius * .71 < W - 45){
+        ctx.fillStyle = c.soft; ctx.font = '10px "IBM Plex Mono", monospace';
+        ctx.fillText(nm + ' NM', origin.x + radius * .71 + 6, origin.y - radius * .71 - 6);
+      }
     });
 
-    AIRPORTS.slice(1).forEach(a => line(home, a, c.blue, 1.2, [5, 7]));
     if(selected !== home){
+      ctx.save();
+      ctx.shadowColor = c.magenta;
+      ctx.shadowBlur = 14;
       const route = line(home, selected, c.magenta, 3, []);
+      ctx.restore();
       // Small route pointer shows the direction toward the selected field.
       const t = .63, x = (1-t)**2*route.a.x + 2*(1-t)*t*route.cx + t*t*route.b.x;
       const y = (1-t)**2*route.a.y + 2*(1-t)*t*route.cy + t*t*route.b.y;
@@ -107,17 +128,30 @@
 
     AIRPORTS.forEach(a => {
       const p = point(a), active = a === selected;
-      ctx.beginPath(); ctx.arc(p.x, p.y, active ? 9 : 6, 0, 2*Math.PI);
+      if(active){
+        ctx.beginPath(); ctx.arc(p.x, p.y, 16, 0, 2*Math.PI);
+        ctx.fillStyle = c.amber + '3c'; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(p.x, p.y, active ? 7 : 5, 0, 2*Math.PI);
       ctx.fillStyle = active ? c.amber : a.anchor ? c.blue : c.magenta;
-      ctx.fill(); ctx.strokeStyle = c.paper; ctx.lineWidth = 2; ctx.stroke();
-      ctx.font = (active ? '700 ' : '500 ') + '12px "IBM Plex Mono", monospace';
-      ctx.fillStyle = c.ink;
-      ctx.fillText(a.code, p.x + a.labelX, p.y + a.labelY);
+      ctx.fill(); ctx.strokeStyle = c.paper; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.font = (active ? '700 ' : '600 ') + '12px "IBM Plex Mono", monospace';
+      ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.strokeStyle = c.halo;
+      ctx.strokeText(a.code, p.x + a.labelX, p.y + a.labelY);
+      ctx.fillStyle = c.ink; ctx.fillText(a.code, p.x + a.labelX, p.y + a.labelY);
     });
 
-    ctx.fillStyle = c.ink; ctx.font = '700 13px "IBM Plex Mono", monospace';
-    ctx.fillText('CENTRAL TEXAS // VISITED AIRFIELDS', 20, H - 20);
-    ctx.fillText('N ↑', W - 50, H - 20);
+    ctx.fillStyle = c.blue; ctx.fillRect(19, H - 46, 4, 26);
+    ctx.fillStyle = c.ink; ctx.font = '700 12px "IBM Plex Mono", monospace';
+    ctx.fillText('CENTRAL TEXAS', 34, H - 30);
+    ctx.fillStyle = c.soft; ctx.font = '10px "IBM Plex Mono", monospace';
+    ctx.fillText('12 VISITED FIELDS', 34, H - 15);
+    ctx.save(); ctx.translate(W - 41, H - 35);
+    ctx.strokeStyle = c.blue; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, 12); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();
+    ctx.fillStyle = c.ink; ctx.font = '700 12px "IBM Plex Mono", monospace';
+    ctx.fillText('N', -4, -19);
+    ctx.restore();
   }
 
   function select(a){
