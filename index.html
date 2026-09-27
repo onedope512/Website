@@ -33,7 +33,7 @@ try{
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=chart-refresh">
+<link rel="stylesheet" href="styles.css?v=airspace-layer">
 </head>
 <body>
 
@@ -427,10 +427,15 @@ try{
     <div class="section-inner">
       <div class="waypoint-marker"><span class="wp-num wp-blue">08</span><span class="wp-label">Waypoint</span></div>
       <h2 class="section-title">Airports I've visited</h2>
-      <p class="section-lede">Twelve Texas fields on an interactive chart. Select an airport to trace its position from Austin Executive.</p>
+      <p class="section-lede">Twelve fields I've visited, plus nearby places still on the list. Select a field to explore the chart.</p>
+      <div class="map-toolbar" aria-label="Map layers">
+        <label class="map-toggle"><input type="checkbox" id="showNearby" checked><span>Nearby airports</span></label>
+        <label class="map-toggle"><input type="checkbox" id="showAirspace" checked><span>Airspace</span></label>
+        <span class="map-key"><i class="map-key-visited"></i>Visited <i class="map-key-nearby"></i>Not visited <i class="map-key-class-c"></i>Class C <i class="map-key-class-d"></i>Class D</span>
+      </div>
       <div class="globe-wrap">
         <div class="airport-map">
-          <canvas id="globeCanvas" aria-label="Interactive map of twelve Texas airports Nikhil has visited"></canvas>
+          <canvas id="globeCanvas" aria-label="Interactive map of twelve visited Texas airports, other nearby airports, and Class C and D airspace"></canvas>
           <div class="airport-map-controls" aria-label="Map zoom">
             <button type="button" id="mapZoomIn" aria-label="Zoom map in">+</button>
             <button type="button" id="mapZoomOut" aria-label="Zoom map out">−</button>
@@ -438,12 +443,17 @@ try{
           </div>
         </div>
         <div class="airport-list">
-          <p class="airport-list-label">SELECT A FIELD</p>
+          <p class="airport-list-label">VISITED AIRPORTS</p>
           <div class="globe-places" id="globePlaces"></div>
+          <details class="nearby-airports">
+            <summary>Other nearby airports <span>not visited</span></summary>
+            <div class="globe-places nearby-places" id="nearbyPlaces"></div>
+          </details>
           <p class="airport-selection" id="airportSelection" aria-live="polite"></p>
+          <p class="airspace-selection" id="airspaceSelection" aria-live="polite">Tap a Class C or D area for its altitude limits.</p>
         </div>
       </div>
-      <p class="map-note">The highlighted line uses Austin Executive as a map anchor; it does not represent a logged flight. Airport positions from the <a href="https://www.faa.gov/air_traffic/flight_info/aeronav/digital_products/dafd/" target="_blank" rel="noopener">FAA Chart Supplement</a>.</p>
+      <p class="map-note">This is a visual reference, not a chart for navigation. The highlighted line does not represent a logged flight. Airport and airspace data: <a href="https://adds-faa.opendata.arcgis.com/" target="_blank" rel="noopener">FAA Aeronautical Data Delivery Service</a>. Airspace snapshot: September 2026. Check current FAA charts and NOTAMs before flight.</p>
     </div>
   </section>
 
@@ -816,6 +826,6 @@ try{
 <script src="cockpit.js"></script>
 <script src="script.js"></script>
 <script src="game.js"></script>
-<script src="airport-map.js?v=chart-refresh"></script>
+<script src="airport-map.js?v=airspace-layer"></script>
 </body>
 </html>

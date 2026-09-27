@@ -16,17 +16,37 @@
     { code: 'KLZZ', name: 'Lampasas Airport', lat: 31.1062, lon: -98.1959, labelX: 10, labelY: -10 },
     { code: 'KTPL', name: 'Draughon-Miller Central Texas Regional', lat: 31.1519, lon: -97.4077, labelX: 10, labelY: -10 }
   ];
+  const NEARBY = [
+    { code: 'KAUS', name: 'Austin-Bergstrom International', lat: 30.1945, lon: -97.6699 },
+    { code: '3R9', name: 'Lakeway Airpark', lat: 30.3575, lon: -97.9945 },
+    { code: '88R', name: 'Spicewood', lat: 30.4738, lon: -98.1214 },
+    { code: '11R', name: 'Brenham Municipal', lat: 30.2197, lon: -96.3744 },
+    { code: 'KCFD', name: 'Coulter Field', lat: 30.7157, lon: -96.3314 },
+    { code: 'KLHB', name: 'Hearne Municipal', lat: 30.8721, lon: -96.6222 },
+    { code: 'KILE', name: 'Skylark Field', lat: 31.0858, lon: -97.6865 },
+    { code: 'KGRK', name: 'Robert Gray Army Airfield', lat: 31.0673, lon: -97.8289 },
+    { code: 'KPWG', name: 'McGregor Executive', lat: 31.4849, lon: -97.3165 },
+    { code: 'KCNW', name: 'TSTC Waco', lat: 31.6378, lon: -97.0741 },
+    { code: 'KGDJ', name: 'Granbury Regional', lat: 32.4431, lon: -97.8214 }
+  ];
   const canvas = document.getElementById('globeCanvas');
   const list = document.getElementById('globePlaces');
+  const nearbyList = document.getElementById('nearbyPlaces');
   const info = document.getElementById('airportSelection');
-  if(!canvas || !list || !info) return;
+  const airspaceInfo = document.getElementById('airspaceSelection');
+  const nearbyToggle = document.getElementById('showNearby');
+  const airspaceToggle = document.getElementById('showAirspace');
+  if(!canvas || !list || !nearbyList || !info || !airspaceInfo || !nearbyToggle || !airspaceToggle) return;
   const ctx = canvas.getContext('2d');
   if(!ctx) return;
   const root = document.documentElement;
   const W = 720, H = 500, PAD = 52;
-  const BOX = { west: -99.02, east: -96.08, south: 30.10, north: 32.48 };
+  const BOX = { west: -99.02, east: -96.08, south: 29.95, north: 32.52 };
   const home = AIRPORTS[0];
   let selected = home;
+  let hovered = null;
+  let zones = [];
+  let showNearby = true, showAirspace = true;
   let zoom = 1, panX = 0, panY = 0;
   let dragging = null;
 
@@ -52,7 +72,7 @@
     const v = key => c.getPropertyValue(key).trim();
     return { paper: v('--card'), ink: v('--ink'), soft: v('--ink-soft'), grid: v('--map-grid'),
       top: v('--map-top'), bottom: v('--map-bottom'), halo: v('--map-halo'),
-      blue: v('--blue'), magenta: v('--magenta'), amber: v('--amber') };
+      blue: v('--blue'), magenta: v('--magenta'), amber: v('--amber'), muted: v('--map-muted') };
   }
   function line(from, to, color, width, dash){
     const a = point(from), b = point(to);
@@ -63,6 +83,40 @@
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(cx, cy, b.x, b.y);
     ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]);
     return { a, b, cx, cy };
+  }
+  function drawZones(c){
+    if(!showAirspace) return;
+    const ordered = [...zones].sort((a, b) => (a.class === 'C') - (b.class === 'C') || b.floor - a.floor);
+    ordered.forEach(zone => {
+      ctx.beginPath();
+      zone.ring.forEach(([lon, lat], i) => {
+        const p = point({ lat, lon });
+        if(i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.closePath();
+      const color = zone.class === 'C' ? c.magenta : c.blue;
+      ctx.fillStyle = color + (zone.floor === 0 ? '19' : '11');
+      ctx.fill();
+      ctx.strokeStyle = color + 'a8';
+      ctx.lineWidth = zone.class === 'C' ? 2 : 1.5;
+      ctx.setLineDash(zone.class === 'D' ? [7, 5] : []);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+  }
+  function insideRing(p, ring){
+    let inside = false;
+    for(let i = 0, j = ring.length - 1; i < ring.length; j = i++){
+      const a = point({ lon: ring[i][0], lat: ring[i][1] });
+      const b = point({ lon: ring[j][0], lat: ring[j][1] });
+      if((a.y > p.y) !== (b.y > p.y) && p.x < (b.x - a.x) * (p.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+    }
+    return inside;
+  }
+  function zoneAt(p){
+    if(!showAirspace) return null;
+    return zones.filter(z => insideRing(p, z.ring)).sort((a, b) => a.floor - b.floor)[0] || null;
   }
   function draw(){
     const c = palette();
@@ -91,6 +145,7 @@
       ctx.globalAlpha = .2;
     }
     ctx.globalAlpha = 1;
+    drawZones(c);
 
     const origin = point(home);
     const glow = ctx.createRadialGradient(origin.x, origin.y, 12, origin.x, origin.y, 170 * zoom);
@@ -98,7 +153,7 @@
     glow.addColorStop(1, c.blue + '00');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
-    [25, 50, 75].forEach(nm => {
+    if(!showAirspace) [25, 50, 75].forEach(nm => {
       const radius = nm / 60 * (H - 2 * PAD) / (BOX.north - BOX.south) * zoom;
       ctx.beginPath(); ctx.arc(origin.x, origin.y, radius, 0, 2 * Math.PI);
       ctx.strokeStyle = c.blue; ctx.globalAlpha = .27; ctx.lineWidth = 1; ctx.setLineDash([3, 6]); ctx.stroke();
@@ -109,7 +164,7 @@
       }
     });
 
-    if(selected !== home){
+    if(selected !== home && AIRPORTS.includes(selected)){
       ctx.save();
       ctx.shadowColor = c.magenta;
       ctx.shadowBlur = 14;
@@ -126,6 +181,23 @@
       ctx.restore();
     }
 
+    if(showNearby) NEARBY.forEach(a => {
+      const p = point(a), active = a === selected, hover = a === hovered;
+      if(active || hover){
+        ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, 2 * Math.PI);
+        ctx.fillStyle = c.muted + '3c'; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(p.x, p.y, active ? 7 : 4.5, 0, 2 * Math.PI);
+      ctx.fillStyle = c.muted; ctx.fill();
+      ctx.strokeStyle = c.halo; ctx.lineWidth = 2; ctx.stroke();
+      if(active || hover){
+        const x = Math.min(W - 52, p.x + 10), y = p.y - 10;
+        ctx.font = '700 12px "IBM Plex Mono", monospace';
+        ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.strokeStyle = c.halo;
+        ctx.strokeText(a.code, x, y);
+        ctx.fillStyle = c.ink; ctx.fillText(a.code, x, y);
+      }
+    });
     AIRPORTS.forEach(a => {
       const p = point(a), active = a === selected;
       if(active){
@@ -145,7 +217,7 @@
     ctx.fillStyle = c.ink; ctx.font = '700 12px "IBM Plex Mono", monospace';
     ctx.fillText('CENTRAL TEXAS', 34, H - 30);
     ctx.fillStyle = c.soft; ctx.font = '10px "IBM Plex Mono", monospace';
-    ctx.fillText('12 VISITED FIELDS', 34, H - 15);
+    ctx.fillText('12 VISITED · 11 NEARBY', 34, H - 15);
     ctx.save(); ctx.translate(W - 41, H - 35);
     ctx.strokeStyle = c.blue; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(0, 12); ctx.moveTo(-12, 0); ctx.lineTo(12, 0); ctx.stroke();
@@ -155,22 +227,39 @@
   }
 
   function select(a){
+    if(NEARBY.includes(a) && !showNearby){
+      showNearby = true;
+      nearbyToggle.checked = true;
+    }
     selected = a;
-    list.querySelectorAll('button').forEach(b => {
+    document.querySelectorAll('#globePlaces button, #nearbyPlaces button').forEach(b => {
       const active = b.dataset.code === a.code;
       b.classList.toggle('is-active', active);
       b.setAttribute('aria-pressed', String(active));
     });
     info.textContent = a.anchor ? a.code + ' · ' + a.name + ' — chart anchor'
-      : a.code + ' · ' + a.name + ' — ' + nauticalMiles(home, a) + ' NM straight-line from KEDC';
+      : AIRPORTS.includes(a) ? a.code + ' · ' + a.name + ' — ' + nauticalMiles(home, a) + ' NM straight-line from KEDC'
+      : a.code + ' · ' + a.name + ' — nearby field, not visited';
     draw();
   }
-  AIRPORTS.forEach(a => {
+  function addChip(a, target, nearby){
     const button = document.createElement('button');
-    button.type = 'button'; button.className = 'globe-chip'; button.dataset.code = a.code;
+    button.type = 'button'; button.className = 'globe-chip' + (nearby ? ' is-nearby' : ''); button.dataset.code = a.code;
     button.innerHTML = '<strong>' + a.code + '</strong><span>' + a.name + '</span>';
     button.addEventListener('click', () => select(a));
-    list.appendChild(button);
+    target.appendChild(button);
+  }
+  AIRPORTS.forEach(a => addChip(a, list, false));
+  NEARBY.forEach(a => addChip(a, nearbyList, true));
+  nearbyToggle.addEventListener('change', () => {
+    showNearby = nearbyToggle.checked;
+    if(!showNearby && NEARBY.includes(selected)) select(home);
+    else draw();
+  });
+  airspaceToggle.addEventListener('change', () => {
+    showAirspace = airspaceToggle.checked;
+    airspaceInfo.textContent = showAirspace ? 'Tap a Class C or D area for its altitude limits.' : 'Airspace layer hidden.';
+    draw();
   });
 
   function resize(){
@@ -195,20 +284,37 @@
   }
   canvas.addEventListener('pointerdown', event => {
     const p = localPoint(event);
-    const hit = AIRPORTS.find(a => Math.hypot(point(a).x - p.x, point(a).y - p.y) < 18);
-    if(hit){ select(hit); return; }
-    dragging = { id: event.pointerId, x: p.x, y: p.y };
+    const candidates = showNearby ? [...AIRPORTS, ...NEARBY] : AIRPORTS;
+    const hit = candidates.map(a => ({ a, distance: Math.hypot(point(a).x - p.x, point(a).y - p.y) }))
+      .filter(item => item.distance < (event.pointerType === 'touch' ? 26 : 15))
+      .sort((a, b) => a.distance - b.distance)[0];
+    if(hit){ select(hit.a); return; }
+    dragging = { id: event.pointerId, x: p.x, y: p.y, moved: false, zone: zoneAt(p) };
     canvas.setPointerCapture(event.pointerId);
   });
   canvas.addEventListener('pointermove', event => {
-    if(!dragging || event.pointerId !== dragging.id) return;
     const p = localPoint(event);
+    if(!dragging || event.pointerId !== dragging.id){
+      if(event.pointerType === 'mouse'){
+        const next = showNearby ? NEARBY.find(a => Math.hypot(point(a).x - p.x, point(a).y - p.y) < 10) : null;
+        if(next !== hovered){ hovered = next; draw(); }
+      }
+      return;
+    }
+    if(Math.hypot(p.x - dragging.x, p.y - dragging.y) > 3) dragging.moved = true;
     panX += p.x - dragging.x; panY += p.y - dragging.y;
     dragging.x = p.x; dragging.y = p.y;
     clampPan(); draw();
   });
-  canvas.addEventListener('pointerup', () => { dragging = null; });
+  canvas.addEventListener('pointerup', () => {
+    if(dragging && !dragging.moved && dragging.zone){
+      const z = dragging.zone;
+      airspaceInfo.textContent = z.name + ' · Class ' + z.class + ' · ' + (z.floor === 0 ? 'SFC' : z.floor.toLocaleString() + ' ft') + ' to ' + z.ceiling.toLocaleString() + ' ft MSL';
+    }
+    dragging = null;
+  });
   canvas.addEventListener('pointercancel', () => { dragging = null; });
+  canvas.addEventListener('pointerleave', () => { if(hovered){ hovered = null; draw(); } });
   canvas.addEventListener('wheel', event => {
     event.preventDefault();
     setZoom(zoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12));
@@ -217,4 +323,17 @@
   document.addEventListener('cockpit:theme', draw);
   window.addEventListener('resize', resize);
   resize(); select(home);
+  fetch('airspace-data.json?v=2026-09-26').then(response => {
+    if(!response.ok) throw new Error('Airspace data unavailable');
+    return response.json();
+  }).then(data => {
+    zones = data.zones.filter(z => ['C', 'D'].includes(z.class) && Array.isArray(z.ring));
+    draw();
+  }).catch(() => {
+    airspaceToggle.checked = false;
+    airspaceToggle.disabled = true;
+    showAirspace = false;
+    airspaceInfo.textContent = 'Airspace overlay is unavailable right now.';
+    draw();
+  });
 })();
