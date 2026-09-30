@@ -94,6 +94,15 @@
       top: v('--map-top'), bottom: v('--map-bottom'), halo: v('--map-halo'),
       blue: v('--blue'), magenta: v('--magenta'), amber: v('--amber'), muted: v('--map-muted') };
   }
+  function withAlpha(color, alpha){
+    if(color.startsWith('#')){
+      const hex = color.slice(1);
+      const parts = hex.length === 3 ? [...hex].map(part => part + part) : hex.match(/.{2}/g);
+      return 'rgba(' + parts.slice(0, 3).map(part => parseInt(part, 16)).join(',') + ',' + alpha + ')';
+    }
+    const channels = color.match(/[\d.]+/g);
+    return 'rgba(' + channels.slice(0, 3).join(',') + ',' + alpha + ')';
+  }
   function line(from, to, color, width, dash){
     const a = point(from), b = point(to);
     const dx = b.x - a.x, dy = b.y - a.y;
@@ -112,9 +121,9 @@
       ctx.beginPath();
       ctx.arc(p.x, p.y, zone.radiusNm / nmPerPixel * zoom, 0, 2 * Math.PI);
       const color = zone.class === 'C' ? c.magenta : c.blue;
-      ctx.fillStyle = color + (zone.floor === 0 ? '19' : '11');
+      ctx.fillStyle = withAlpha(color, zone.floor === 0 ? .10 : .067);
       ctx.fill();
-      ctx.strokeStyle = color + 'a8';
+      ctx.strokeStyle = withAlpha(color, .66);
       ctx.lineWidth = zone.class === 'C' ? 2 : 1.5;
       ctx.setLineDash(zone.class === 'D' ? [7, 5] : []);
       ctx.stroke();
@@ -167,8 +176,8 @@
 
     const origin = point(home);
     const glow = ctx.createRadialGradient(origin.x, origin.y, 12, origin.x, origin.y, 170 * zoom);
-    glow.addColorStop(0, c.blue + '25');
-    glow.addColorStop(1, c.blue + '00');
+    glow.addColorStop(0, withAlpha(c.blue, .145));
+    glow.addColorStop(1, withAlpha(c.blue, 0));
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
     if(!showAirspace) [25, 50, 75].forEach(nm => {
@@ -203,7 +212,7 @@
       const p = point(a), active = a === selected, hover = a === hovered;
       if(active || hover){
         ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, 2 * Math.PI);
-        ctx.fillStyle = c.muted + '3c'; ctx.fill();
+        ctx.fillStyle = withAlpha(c.muted, .235); ctx.fill();
       }
       ctx.beginPath(); ctx.arc(p.x, p.y, active ? 7 : 4.5, 0, 2 * Math.PI);
       ctx.fillStyle = c.muted; ctx.fill();
@@ -220,7 +229,7 @@
       const p = point(a), active = a === selected;
       if(active){
         ctx.beginPath(); ctx.arc(p.x, p.y, 16, 0, 2*Math.PI);
-        ctx.fillStyle = c.amber + '3c'; ctx.fill();
+        ctx.fillStyle = withAlpha(c.amber, .235); ctx.fill();
       }
       ctx.beginPath(); ctx.arc(p.x, p.y, active ? 7 : 5, 0, 2*Math.PI);
       ctx.fillStyle = active ? c.amber : a.anchor ? c.blue : c.magenta;
@@ -351,7 +360,17 @@
     setZoom(zoom * (event.deltaY < 0 ? 1.12 : 1 / 1.12));
   }, { passive: false });
 
-  document.addEventListener('cockpit:theme', draw);
+  let themeFrame = 0;
+  document.addEventListener('cockpit:theme', () => {
+    cancelAnimationFrame(themeFrame);
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){ draw(); return; }
+    const started = performance.now();
+    function frame(now){
+      draw();
+      if(now - started < 950) themeFrame = requestAnimationFrame(frame);
+    }
+    themeFrame = requestAnimationFrame(frame);
+  });
   window.addEventListener('resize', resize);
   resize(); select(home);
   if('IntersectionObserver' in window){

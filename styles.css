@@ -3,6 +3,30 @@
    Palette drawn from aeronautical sectional charts, not UI defaults.
 =================================================================== */
 
+/* Typed colors let the whole palette, including the sky gradient, interpolate. */
+@property --paper{ syntax: "<color>"; inherits: true; initial-value: #E4DAC0; }
+@property --paper-alt{ syntax: "<color>"; inherits: true; initial-value: #DACEAE; }
+@property --ink{ syntax: "<color>"; inherits: true; initial-value: #2A2620; }
+@property --ink-soft{ syntax: "<color>"; inherits: true; initial-value: #5A5344; }
+@property --blue{ syntax: "<color>"; inherits: true; initial-value: #1F5C82; }
+@property --magenta{ syntax: "<color>"; inherits: true; initial-value: #9C3B6E; }
+@property --green{ syntax: "<color>"; inherits: true; initial-value: #4B6B3A; }
+@property --amber{ syntax: "<color>"; inherits: true; initial-value: #C77C2E; }
+@property --line{ syntax: "<color>"; inherits: true; initial-value: #B8A778; }
+@property --line-soft{ syntax: "<color>"; inherits: true; initial-value: #CBBF9C; }
+@property --card{ syntax: "<color>"; inherits: true; initial-value: #EFE7D2; }
+@property --sky-top{ syntax: "<color>"; inherits: true; initial-value: #6FA8C9; }
+@property --sky-bottom{ syntax: "<color>"; inherits: true; initial-value: #D9E8ED; }
+@property --runway{ syntax: "<color>"; inherits: true; initial-value: #D9A62B; }
+@property --topbar-bg{ syntax: "<color>"; inherits: true; initial-value: rgba(228,218,192,.92); }
+@property --on-accent{ syntax: "<color>"; inherits: true; initial-value: #fff; }
+@property --globe-ocean{ syntax: "<color>"; inherits: true; initial-value: #b9d3e3; }
+@property --globe-land{ syntax: "<color>"; inherits: true; initial-value: #e8dfc6; }
+@property --map-top{ syntax: "<color>"; inherits: true; initial-value: #dcecf0; }
+@property --map-bottom{ syntax: "<color>"; inherits: true; initial-value: #f3ead5; }
+@property --map-halo{ syntax: "<color>"; inherits: true; initial-value: #f3ead5; }
+@property --map-muted{ syntax: "<color>"; inherits: true; initial-value: #68767b; }
+
 :root{
   --paper:      #E4DAC0;
   --paper-alt:  #DACEAE;
@@ -38,7 +62,16 @@
 
 *{ box-sizing: border-box; }
 
-html{ scroll-behavior: smooth; overflow-x: hidden; }
+html{
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  transition-property: --paper, --paper-alt, --ink, --ink-soft, --blue, --magenta,
+    --green, --amber, --line, --line-soft, --card, --sky-top, --sky-bottom,
+    --runway, --topbar-bg, --on-accent, --globe-ocean, --globe-land,
+    --map-top, --map-bottom, --map-halo, --map-muted;
+  transition-duration: .9s;
+  transition-timing-function: ease-in-out;
+}
 
 body{
   margin: 0;
@@ -54,6 +87,7 @@ body{
 @media (prefers-reduced-motion: reduce){
   html{ scroll-behavior: auto; }
   *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  html{ transition-duration: 0.001ms !important; }
 }
 
 a{ color: var(--blue); }
@@ -199,6 +233,7 @@ main, header, footer{ position: relative; z-index: 1; }
   height: auto;
   display: block;
   opacity: 0.85;
+  transition: filter .9s ease-in-out, opacity .9s ease-in-out;
   animation: drift linear infinite;
 }
 .cloud-a{ top: 8%;  width: 220px; animation-duration: 46s; animation-delay: -6s; }
@@ -223,6 +258,7 @@ main, header, footer{ position: relative; z-index: 1; }
   display: block;
   width: 100%;
   height: auto;
+  transition: filter .9s ease-in-out;
 }
 @keyframes plane-fly{
   0%{   transform: translate(-20vw, 10px) rotate(-2deg); opacity: 0; }
@@ -1389,7 +1425,7 @@ html[data-clouds="few"] .cloud-b{ display: none; }
   margin-top: -14px;
   pointer-events: none;
   transform: rotate(90deg);
-  transition: transform 0.4s ease;
+  transition: transform 0.4s ease, filter .9s ease-in-out;
 }
 .route-rail.is-landed .route-plane{ transform: rotate(0deg); }
 
@@ -1401,6 +1437,7 @@ html[data-clouds="few"] .cloud-b{ display: none; }
   top: 50%;
   width: 22px;
   transform: translateY(-50%);
+  transition: filter .9s ease-in-out;
 }
 @media (min-width: 1240px){ .route-bar{ display: none; } }
 
@@ -1651,10 +1688,10 @@ html[data-sky="night"]:not(.force-day) .game{ --overlay-bg: rgba(26, 36, 64, 0.9
 }
 #globeCanvas{ display: block; width: 100%; aspect-ratio: 1; cursor: grab; touch-action: none; }
 #globeCanvas:active{ cursor: grabbing; }
-.map-tiles{ position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: .48; filter: grayscale(1) contrast(.78); }
+.map-tiles{ position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: .48; filter: grayscale(1) invert(0) brightness(1) contrast(.78); transition: opacity .9s ease-in-out, filter .9s ease-in-out; }
 .map-tiles img{ position: absolute; display: block; max-width: none; height: auto; user-select: none; }
 html.night .map-tiles,
-html[data-sky="night"]:not(.force-day) .map-tiles{ opacity: .38; filter: grayscale(1) invert(1) brightness(.7); }
+html[data-sky="night"]:not(.force-day) .map-tiles{ opacity: .38; filter: grayscale(1) invert(1) brightness(.7) contrast(.78); }
 #globeCanvas{ position: relative; z-index: 1; }
 .airport-map-controls{ position: absolute; z-index: 2; right: 16px; top: 16px; display: flex; gap: 4px; }
 .map-attribution{ position: absolute; z-index: 2; right: 8px; bottom: 5px; padding: 2px 4px; background: var(--card); color: var(--ink-soft); font: 500 9px/1.2 var(--sans); }
